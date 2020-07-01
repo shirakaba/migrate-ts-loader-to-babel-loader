@@ -6,7 +6,7 @@
         <Label text="Home"></Label>
     </ActionBar>
 
-    <GridLayout>
+    <StackLayout>
         <!-- Add your page content here -->
-    </GridLayout>
+    </StackLayout>
 </Page>

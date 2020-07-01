@@ -60,6 +60,29 @@ module.exports = env => {
     const isAnySourceMapEnabled = !!sourceMap || !!hiddenSourceMap;
     const externals = nsWebpack.getConvertedExternals(env.externals);
 
+    /* npm install --save-dev @babel/cli @babel/core @babel/plugin-proposal-class-properties @babel/preset-env @babel/preset-typescript babel-loader */
+    const babelOptions = {
+        sourceMaps: isAnySourceMapEnabled ? "inline" : false,
+        babelrc: false,
+        presets: [
+            /** @see https://github.com/Microsoft/TypeScript-Babel-Starter */
+            "@babel/env",
+            "@babel/typescript",
+            // "@babel/react",
+        ],
+        plugins: [
+            /* If you had a Babel plugin for HMR purposes, then you'd shove it in here */
+            // ...(
+            //     hmr && !production ?
+            //         [
+            //             require.resolve('react-refresh/babel')
+            //         ] :
+            //         []
+            // ),
+            ["@babel/plugin-proposal-class-properties", { loose: true }]
+        ]
+    };
+
     const appFullPath = resolve(projectRoot, appPath);
     const hasRootLevelScopedModules = nsWebpack.hasRootLevelScopedModules({ projectDir: projectRoot });
     let coreModulesPackageName = "tns-core-modules";
@@ -207,7 +230,8 @@ module.exports = env => {
                 },
 
                 {
-                    test: /\.(ts|css|scss|html|xml)$/,
+                    // [Jamie] I've added .js simply because it should've been in here to begin with.
+                    test: /\.(js|ts|css|scss|html|xml)$/,
                     use: "nativescript-dev-webpack/hmr/hot-loader"
                 },
 
@@ -227,22 +251,16 @@ module.exports = env => {
                 },
 
                 {
-                    test: /\.ts$/,
-                    use: {
-                        loader: "ts-loader",
-                        options: {
-                            configFile: tsConfigPath,
-                            // https://github.com/TypeStrong/ts-loader/blob/ea2fcf925ec158d0a536d1e766adfec6567f5fb4/README.md#faster-builds
-                            // https://github.com/TypeStrong/ts-loader/blob/ea2fcf925ec158d0a536d1e766adfec6567f5fb4/README.md#hot-module-replacement
-                            transpileOnly: true,
-                            allowTsInNodeModules: true,
-                            compilerOptions: {
-                                sourceMap: isAnySourceMapEnabled,
-                                declaration: false
-                            }
-                        },
-                    }
-                },
+                    // [Jamie] Make sure to resolve .vue file extensions or whatever else you may need.
+                    test: /\.[jt]s$/,
+                    exclude: /node_modules/,
+                    use: [
+                        {
+                            loader: "babel-loader",
+                            options: babelOptions
+                        }
+                    ],
+                }
             ]
         },
         plugins: [
@@ -269,15 +287,7 @@ module.exports = env => {
             }),
             // Does IPC communication with the {N} CLI to notify events when running in watch mode.
             new nsWebpack.WatchStateLoggerPlugin(),
-            // https://github.com/TypeStrong/ts-loader/blob/ea2fcf925ec158d0a536d1e766adfec6567f5fb4/README.md#faster-builds
-            // https://github.com/TypeStrong/ts-loader/blob/ea2fcf925ec158d0a536d1e766adfec6567f5fb4/README.md#hot-module-replacement
-            new ForkTsCheckerWebpackPlugin({
-                tsconfig: tsConfigPath,
-                async: false,
-                useTypescriptIncrementalApi: true,
-                checkSyntacticErrors: true,
-                memoryLimit: 4096
-            })
+            // [Jamie] I've removed Fork TS Webpack plugin because type-checking is now done by the IDE.
         ],
     };
 
